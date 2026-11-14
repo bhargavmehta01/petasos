@@ -11,9 +11,12 @@ def register(ctx):
 
     profile = Profile(Path(get_hermes_home()).resolve())
     policy = profile.policy()
-    if not policy.enabled:
-        return
-    policy.public_key()  # fail before hooks/worker acquisition on invalid key
+    # Install the lifecycle owner even if the operator policy is disabled.
+    # Runtime.deliver_one() and observer callbacks re-read policy on every
+    # operation and refuse to send/store when it is disabled. A later policy
+    # enable must wake the existing worker without a gateway restart.
+    if policy.enabled:
+        policy.public_key()  # reject an invalid enabled VAPID key on load
     runtime = Runtime(profile)
     ctx.on_unload(runtime.stop)  # teardown recorded BEFORE resources or callbacks
     runtime.initialise()

@@ -11,7 +11,8 @@ void registerAppLicenses({AssetBundle? assetBundle}) {
   LicenseRegistry.addLicense(() async* {
     final bundle = assetBundle ?? rootBundle;
     const notices = <String, String>{
-      'LICENSE': 'Hermes Android',
+      'LICENSE': 'Petasos (AGPL-3.0)',
+      'LICENSES/MIT-hermes-android.txt': 'Hermes Android by rusty4444 (MIT)',
       'assets/fonts/OFL.txt': 'Cinzel',
       'third_party/embedded-push-notice.md': 'embedded-fcm-distributor (3.1.0)',
       'third_party/embedded-push-relink.md': 'embedded-fcm-distributor (3.1.0)',

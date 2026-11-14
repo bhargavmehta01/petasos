@@ -40,8 +40,13 @@ import 'core/widgets/hermes_system_ui.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:hermes_android/core/l10n/l10n.dart';
+import 'hermes_mobile/hermes_mobile_app.dart';
 
-void main() {
+/// Petasos boots the new Petasos UI shell (lib/hermes_mobile/) on top of this engine.
+void main() => hermesMobileMain();
+
+/// The original hermes-android UI, kept compiling so upstream merges stay easy.
+void legacyMain() {
   WidgetsFlutterBinding.ensureInitialized();
   // Remove any private key left behind by a cancelled connection import.
   unawaited(ClientCertificateService().cleanupStaging());

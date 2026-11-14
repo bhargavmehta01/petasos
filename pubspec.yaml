@@ -1,7 +1,7 @@
 name: hermes_android
 description: "Hermes Agent — chat with your Hermes Gateway API Server over LAN. SSE streaming, Bearer auth, session management."
 publish_to: 'none'
-version: 3.2.1+3027
+version: 1.0.0+72003
 
 environment:
   sdk: ^3.12.0
@@ -74,13 +74,18 @@ flutter:
   generate: true
   uses-material-design: true
   fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf
     - family: Cinzel
       fonts:
         - asset: assets/fonts/Cinzel-Variable.ttf
   assets:
     - assets/
     - LICENSE
+    - LICENSES/MIT-hermes-android.txt
     - assets/fonts/OFL.txt
+    - assets/fonts/Inter-OFL.txt
     - third_party/embedded-push-notice.md
     - third_party/embedded-push-relink.md
     - third_party/licenses/embedded-fcm-distributor-LGPL-2.1.txt

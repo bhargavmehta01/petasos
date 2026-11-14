@@ -39,7 +39,12 @@ class MainActivity : FlutterActivity() {
         attachmentPdfPreview = AttachmentPdfPreview(this, flutterEngine.dartExecutor.binaryMessenger)
         BackgroundWorkPlatform.install(this, flutterEngine.dartExecutor.binaryMessenger)
         MobilePushPlugin.install(flutterEngine)
+        HermesMobileWidgets.install(this, flutterEngine.dartExecutor.binaryMessenger) // wave1
         handsFreeVoice = HandsFreeVoicePlugin.install(flutterEngine)
+        // --- wave2 ---
+        W2DynamicColor.install(this, flutterEngine.dartExecutor.binaryMessenger)
+        // --- end wave2 ---
+        HermesMobileContextTriggers.install(this, flutterEngine) // --- wave4 ---
         shareChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, shareChannelName).apply {
             setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -139,8 +144,13 @@ class MainActivity : FlutterActivity() {
     }
 
 
+    // --- wave1 (hermes_mobile) --- shortcuts, QS tile and widgets add a hermes_mobile_action extra.
     private fun launchActionFor(intent: Intent?): String? =
-        if (intent?.action == quickChatAction) "quickChat" else null
+        if (intent?.action == quickChatAction) {
+            intent?.getStringExtra(HermesMobileWidgets.EXTRA_ACTION)?.let { "hermes_mobile:$it" } ?: "quickChat"
+        } else {
+            null
+        }
 
     private fun isShareIntent(intent: Intent?): Boolean =
         intent?.action == Intent.ACTION_SEND || intent?.action == Intent.ACTION_SEND_MULTIPLE

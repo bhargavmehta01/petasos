@@ -36,6 +36,8 @@ void main() {
     for (final file in sources) {
       final path = file.path.replaceAll('\\', '/');
       if (path == themeRoot) continue;
+      // Petasos UI has its own token system in lib/hermes_mobile/theme.
+      if (path.startsWith('lib/hermes_mobile/')) continue;
       // Integers in services also encode non-colour bitmasks and file headers.
       final presentation =
           path == 'lib/main.dart' ||

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/hermes_mobile_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/hermes_mobile_widget_bg"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="10dp">
+    <TextView
+        android:id="@+id/hermes_mobile_ask"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/hermes_mobile_widget_ask"
+        android:textColor="@color/hermes_mobile_widget_text2"
+        android:textSize="15sp" />
+    <TextView
+        android:id="@+id/hermes_mobile_voice"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:background="@drawable/hermes_mobile_widget_pill"
+        android:gravity="center"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:text="@string/hermes_mobile_widget_voice"
+        android:textColor="#FFFFFFFF"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+</LinearLayout>

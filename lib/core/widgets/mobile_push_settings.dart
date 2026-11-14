@@ -188,6 +188,14 @@ class _MobilePushSettingsState extends State<MobilePushSettings> {
                 ),
               ),
               Text(statusText, key: const Key('mobile-push-status')),
+              if (service.active && !another && service.installationId.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                const Text('Petasos cron destination (device ID):'),
+                SelectableText(
+                  service.installationId,
+                  key: const Key('hermes-mobile-cron-device-id'),
+                ),
+              ],
               if (busy) ...[
                 const SizedBox(height: 8),
                 const LinearProgressIndicator(),

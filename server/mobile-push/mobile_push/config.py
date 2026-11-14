@@ -18,7 +18,7 @@ from types import MappingProxyType
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
-KINDS = frozenset({"turn_done", "turn_error", "input", "input_resolved"})
+KINDS = frozenset({"turn_done", "turn_error", "input", "input_resolved", "cron_result"})
 IDENTIFIER = re.compile(r"[A-Za-z0-9_.:@-]{1,200}\Z")
 
 
@@ -169,6 +169,25 @@ class Profile:
             allowed.append((entry["host"], ips))
         allowed = tuple(allowed)
         return Policy(enabled, grants, frozenset(owners), key, subject, allowed)
+
+    def is_cron_session(self, session_id: str) -> bool:
+        """Only suppress known scheduled sessions, never infer from ID syntax."""
+        if not identifier(session_id):
+            return False
+        try:
+            with contextlib.closing(
+                sqlite3.connect(
+                    (self.home / "state.db").as_uri() + "?mode=ro",
+                    uri=True,
+                    timeout=0.1,
+                )
+            ) as db:
+                row = db.execute(
+                    "SELECT source FROM sessions WHERE id=?", (session_id,)
+                ).fetchone()
+                return row is not None and row[0] == "cron"
+        except sqlite3.Error:
+            return False
 
     def durable(self, session_id: str) -> bool:
         # Never create/open the live state DB for writing, and never infer an alias or parent.

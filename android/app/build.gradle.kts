@@ -29,12 +29,15 @@ android {
            "versionCode ${flutter.versionCode} must be greater than " +
                "$minimumInstalledVersionCode to upgrade the accepted Hermes APK"
        }
-       applicationId = "com.hermesagent.hermes_android"
+       // Petasos installs beside rusty4444's app (com.hermesagent.hermes_android).
+       // The Kotlin namespace and MethodChannel names stay upstream's so engine
+       // code merges cleanly.
+       applicationId = "io.github.bhargavmehta01.hermesmobile"
        minSdk = 24
        targetSdk = 36
        versionCode = flutter.versionCode
        versionName = flutter.versionName
-       manifestPlaceholders["appLabel"] = "Hermes Agent"
+       manifestPlaceholders["appLabel"] = "Petasos"
    }
 
    signingConfigs {
@@ -55,7 +58,7 @@ android {
            // verifies the packaged arm64 code against that scheme.
            applicationIdSuffix = ".dev"
            versionNameSuffix = "-dev"
-           manifestPlaceholders["appLabel"] = "Hermes Agent Dev"
+           manifestPlaceholders["appLabel"] = "Petasos Dev"
        }
        release {
            isMinifyEnabled = true

@@ -39,6 +39,7 @@ NATIVE_SOURCES = (
 )
 FLUTTER_SOURCES = (
     "LICENSE",
+    "LICENSES/MIT-hermes-android.txt",
     "assets/fonts/OFL.txt",
     "assets/fonts/Cinzel-Variable.ttf",
     *NATIVE_SOURCES[:3],
@@ -354,7 +355,7 @@ class ApkPublicationGateTest(unittest.TestCase):
     def test_valid_labelled_fixtures_verify_all_three_before_source_and_publication(
         self,
     ):
-        self.assertEqual(len(ASSET_SOURCES), 22)
+        self.assertEqual(len(ASSET_SOURCES), 23)
         self.invoke()
         for tool in ("aapt", "apksigner"):
             self.assertEqual(

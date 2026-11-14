@@ -736,6 +736,15 @@ class DesktopGatewayClient {
     }, capabilities: _capabilities);
   }
 
+  /// Inventory calls only. No connector mutation or raw credential lookup.
+  Future<Map<String, dynamic>> readConnectorInventoryRpc(String method) async {
+    if (method != 'connectors.accounts' && method != 'mcp.servers.list') {
+      throw ArgumentError.value(method, 'method', 'Read-only inventory only');
+    }
+    final socket = await _connectControl();
+    return socket.send(method, const <String, dynamic>{});
+  }
+
   /// What this gateway advertises or has been proven to support.
   ///
   /// Populated from `gateway.ready` on every connect and refined by the

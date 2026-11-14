@@ -58,3 +58,8 @@ mutation-test-report/
 
 # Generated test artifacts
 review-evidence/
+
+# Signing material must never be committed
+*.p12
+*.jks
+*.keystore

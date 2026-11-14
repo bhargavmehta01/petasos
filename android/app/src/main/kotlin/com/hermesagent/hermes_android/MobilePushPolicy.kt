@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 /** Pure policy, also exercised by JVM tests. Hints are never routing authority. */
 internal object MobilePushPolicy {
-    val kinds = setOf("turn_done", "turn_error", "input", "input_resolved")
+    val kinds = setOf("turn_done", "turn_error", "input", "input_resolved", "cron_result")
     fun validSessions(sessions: JSONArray): Boolean = sessions.length() in 1..128 &&
         (0 until sessions.length()).all { sessions.opt(it) is String &&
             Regex("[A-Za-z0-9_.:@-]{1,200}").matches(sessions.getString(it)) }

@@ -3,10 +3,33 @@
     <shortcut
         android:shortcutId="new_quick_chat"
         android:enabled="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/ic_hermes_mobile_launcher"
         android:shortcutShortLabel="@string/shortcut_quick_chat_short"
         android:shortcutLongLabel="@string/shortcut_quick_chat_long">
         <intent android:action="com.hermesagent.hermes_android.action.QUICK_CHAT" />
         <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <!-- wave1 (hermes_mobile) -->
+    <shortcut
+        android:shortcutId="hermes_mobile_remind"
+        android:enabled="true"
+        android:icon="@mipmap/ic_hermes_mobile_launcher"
+        android:shortcutShortLabel="@string/hermes_mobile_shortcut_remind_short"
+        android:shortcutLongLabel="@string/hermes_mobile_shortcut_remind_long">
+        <intent
+            android:action="com.hermesagent.hermes_android.action.QUICK_CHAT">
+            <extra android:name="hermes_mobile_action" android:value="remind" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="hermes_mobile_watch"
+        android:enabled="true"
+        android:icon="@mipmap/ic_hermes_mobile_launcher"
+        android:shortcutShortLabel="@string/hermes_mobile_shortcut_watch_short"
+        android:shortcutLongLabel="@string/hermes_mobile_shortcut_watch_long">
+        <intent
+            android:action="com.hermesagent.hermes_android.action.QUICK_CHAT">
+            <extra android:name="hermes_mobile_action" android:value="watch" />
+        </intent>
     </shortcut>
 </shortcuts>

@@ -5,11 +5,18 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- wave4: opt-in context triggers; each is requested only when its trigger is turned on -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- /wave4 -->
     <application
         android:label="${appLabel}"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher"
+        android:icon="@mipmap/ic_hermes_mobile_launcher"
+        android:roundIcon="@mipmap/ic_hermes_mobile_launcher_round"
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:localeConfig="@xml/locale_config"
@@ -49,6 +56,34 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- wave1 (hermes_mobile): Quick Settings tile and home-screen widgets -->
+        <service
+            android:name=".HermesMobileQuickAskTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_mobile_push"
+            android:label="@string/hermes_mobile_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <receiver android:name=".HermesMobileBriefWidget" android:exported="false" android:label="@string/hermes_mobile_widget_brief_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/hermes_mobile_widget_brief_info" />
+        </receiver>
+        <receiver android:name=".HermesMobilePanelWidget" android:exported="false" android:label="@string/hermes_mobile_widget_panel_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/hermes_mobile_widget_panel_info" />
+        </receiver>
+        <receiver android:name=".HermesMobileNeedsYouWidget" android:exported="false" android:label="@string/hermes_mobile_widget_needs_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/hermes_mobile_widget_needs_info" />
+        </receiver>
+        <receiver android:name=".HermesMobileQuickAskWidget" android:exported="false" android:label="@string/hermes_mobile_widget_ask_label">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/hermes_mobile_widget_ask_info" />
+        </receiver>
+        <!-- end wave1 -->
         <service android:name=".MobilePushService" android:exported="false">
             <intent-filter>
                 <action android:name="org.unifiedpush.android.connector.PUSH_EVENT" />

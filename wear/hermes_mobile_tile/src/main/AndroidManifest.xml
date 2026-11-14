@@ -1,0 +1,25 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-feature android:name="android.hardware.type.watch" />
+    <application
+        android:label="@string/app_name"
+        android:icon="@android:drawable/ic_dialog_info"
+        android:usesCleartextTraffic="true">
+        <uses-library android:name="com.google.android.wearable" android:required="true" />
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="false" />
+        <service
+            android:name=".HermesMobileTileService"
+            android:exported="true"
+            android:label="@string/tile_label"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@android:drawable/ic_dialog_info" />
+        </service>
+    </application>
+</manifest>

@@ -40,6 +40,7 @@ NATIVE_SOURCES = (
 )
 FLUTTER_SOURCES = (
     "LICENSE",
+    "LICENSES/MIT-hermes-android.txt",
     "assets/fonts/OFL.txt",
     "assets/fonts/Cinzel-Variable.ttf",
     *NATIVE_SOURCES[:3],

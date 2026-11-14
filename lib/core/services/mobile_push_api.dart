@@ -92,11 +92,13 @@ class MobilePushApi {
         'keys': state['keys'],
         'registration_nonce': state['nonce'],
         'registration_revision': state['revision'],
-        'event_kinds': const [
+        // Scope is determined at runtime; a const list cannot use it.
+        'event_kinds': [
           'turn_done',
           'turn_error',
           'input',
           'input_resolved',
+          if (scope == 'authorized') 'cron_result',
         ],
         if (scope == 'authorized')
           'session_scope': 'authorized'
@@ -105,6 +107,19 @@ class MobilePushApi {
       },
     );
   }
+
+  /// Only the active, generation-bound device can fetch cron output.
+  Future<Map<String, dynamic>> cronResult(
+    String eventId, {
+    required String installation,
+    required int generation,
+  }) => client.apiGet(
+    '$prefix/cron-results/${Uri.encodeComponent(eventId)}',
+    queryParameters: _query({
+      'installation_id': installation,
+      'generation': '$generation',
+    }),
+  );
 
   Future<Map<String, dynamic>> confirm(
     String installation,

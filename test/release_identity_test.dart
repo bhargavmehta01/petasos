@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test(
-    'Stable 3.2.1 has the exact identity and upgrades every 3.2.0 split',
+    'Current APK identity preserves published 3.2.1 upgrade compatibility',
     () {
       final pubspec = File('pubspec.yaml').readAsStringSync();
       final match = RegExp(
@@ -13,20 +13,15 @@ void main() {
       ).firstMatch(pubspec);
 
       expect(match, isNotNull);
-      expect(match!.group(1), '3.2.1');
+      // Current app releases may advance past 3.2.1. Preserve compatibility
+      // with the highest published 3.2.1 ABI split, versionCode 30273.
+      final versionName = match!.group(1)!;
+      expect(RegExp(r'^\d+\.\d+\.\d+$').hasMatch(versionName), isTrue);
       final baseCode = int.parse(match.group(2)!);
-      expect(baseCode, 3027);
-      expect(baseCode, greaterThan(3026));
-      // Every stable split must upgrade even the highest published 3.2.0 split.
+      expect(baseCode, greaterThanOrEqualTo(3027));
       for (final abiCode in [1, 2, 3]) {
-        expect(baseCode * 10 + abiCode, greaterThan(30263));
+        expect(baseCode * 10 + abiCode, greaterThan(30273));
       }
-      expect(
-        [
-          for (final abiCode in [1, 2, 3]) baseCode * 10 + abiCode,
-        ],
-        [30271, 30272, 30273],
-      );
     },
   );
 

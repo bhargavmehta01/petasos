@@ -1,0 +1,10 @@
+{
+  "name": "hermes_mobile",
+  "label": "Petasos",
+  "description": "Server companion for the Petasos Android app: proactive cards, briefs, feedback and uploads.",
+  "icon": "Smartphone",
+  "version": "0.1.0",
+  "tab": { "path": "/hermes_mobile", "position": "end", "hidden": true },
+  "entry": "dist/index.js",
+  "api": "plugin_api.py"
+}

@@ -159,6 +159,39 @@ class PinnedSession:
             connection.close()
 
 
+def _vapid_for_policy(policy):
+    """Build a VAPID signer for an operator-owned, validated contact URI.
+
+    py_vapid rejects valid HTTPS contact URLs containing a path. RFC 8292
+    allows an HTTPS contact URI. Bypass only that library regex after checking
+    the actual configured HTTPS URI; never replace the contact or rotate keys.
+    """
+    key = Vapid.from_pem(private_file(policy.vapid_key))
+    subject = policy.vapid_subject
+    if subject.startswith("https://"):
+        try:
+            uri = urlsplit(subject)
+            port = uri.port  # Reject malformed ports.
+            if (
+                len(subject) > 254
+                or any(ord(char) < 33 or ord(char) > 126 for char in subject)
+                or "\\" in subject
+                or uri.scheme != "https"
+                or not uri.hostname
+                or uri.username is not None
+                or uri.password is not None
+                or uri.fragment
+                or port == 0
+            ):
+                raise ValueError
+        except ValueError:
+            raise Rejected(422, "Invalid HTTPS VAPID contact") from None
+        # py_vapid's strict contact regex disallows RFC-valid HTTPS paths.
+        # Its 'no-strict' mode still checks the required audience claim.
+        key.conf["no-strict"] = True
+    return key
+
+
 class Sender:
     def __init__(self, context=None):
         self.context = context
@@ -166,8 +199,8 @@ class Sender:
     def send(self, registration, hint_json, policy):
         import json
 
-        # Validate the private key file at use time, not just on startup.
-        key = Vapid.from_pem(private_file(policy.vapid_key))
+        # Validate the private key and HTTPS contact at each send.
+        key = _vapid_for_policy(policy)
         try:
             response = webpush(
                 subscription_info={

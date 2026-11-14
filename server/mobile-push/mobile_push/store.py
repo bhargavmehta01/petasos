@@ -48,6 +48,10 @@ CREATE TABLE IF NOT EXISTS attention (
  session_id TEXT NOT NULL, request_id TEXT NOT NULL, resolved INTEGER NOT NULL,
  expires_at INTEGER NOT NULL, PRIMARY KEY(session_id,request_id)
 );
+CREATE TABLE IF NOT EXISTS cron_results (
+ event_id TEXT PRIMARY KEY REFERENCES events(event_id) ON DELETE CASCADE,
+ message TEXT NOT NULL
+);
 """
 
 
@@ -414,6 +418,86 @@ class Store:
                 self._queue(db, row["installation"], row["generation"], event_id, hint, now)
             self._prune(db, policy, now)
 
+    def record_cron(self, installation: str, message: str, policy: Policy) -> str:
+        """Queue one cron result for an already paired, owner-authorised phone.
+
+        The server-side cron sender is trusted; callers cannot claim an end-user
+        principal. The device's existing consent, generation and operator ACL
+        are checked again by the worker before any encrypted push is sent.
+        """
+        if not identifier(installation) or not isinstance(message, str):
+            raise Rejected(422, "Invalid mobile destination or message")
+        if not message.strip() or message.strip() == "[SILENT]":
+            return "silent"
+        if len(message.encode("utf-8")) > 65536:
+            raise Rejected(413, "Cron message exceeds 64 KiB")
+        if not policy.enabled:
+            raise Rejected(503, "Mobile push is disabled")
+        now = self.now()
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT * FROM registrations WHERE installation=?", (installation,)
+            ).fetchone()
+            if row is None or row["status"] != "active":
+                raise Rejected(404, "No active Petasos device")
+            principal = (row["provider"], row["user_id"])
+            if (
+                principal not in policy.owner_grants
+                or row["session_scope"] != "authorized"
+                or "cron_result" not in json.loads(row["kinds_json"])
+            ):
+                raise Rejected(403, "Device has not consented to cron notifications")
+            self._prune(db, policy, now)
+            event_id = self._event(
+                db, principal, "cron:" + uuid.uuid4().hex, "cron_result",
+                now, now + policy.ttl, installation=installation,
+            )
+            db.execute(
+                "INSERT INTO cron_results(event_id,message) VALUES (?,?)",
+                (event_id, message),
+            )
+            self._queue(
+                db, installation, row["generation"], event_id,
+                self.hint(event_id, "cron_result", row["generation"],
+                          row["nonce"], now + policy.ttl),
+                now,
+            )
+            self._prune(db, policy, now)
+            return event_id
+
+    def cron_result(self, principal, installation, generation, event_id, policy: Policy):
+        """Fetch a cron result only from the exact live, owner-bound installation."""
+        if not identifier(installation) or not identifier(event_id):
+            raise Rejected(422, "Invalid cron result reference")
+        if type(generation) is not int or not 1 <= generation <= 9223372036854775807:
+            raise Rejected(422, "Invalid generation")
+        if not policy.enabled or principal not in policy.owner_grants:
+            raise Rejected(403, "Cron result access denied")
+        with self.connection() as db:
+            db.execute("BEGIN")
+            registration = db.execute(
+                "SELECT * FROM registrations WHERE installation=?", (installation,)
+            ).fetchone()
+            self.owner(registration, principal)
+            if (
+                registration["status"] != "active"
+                or registration["generation"] != generation
+                or registration["session_scope"] != "authorized"
+                or "cron_result" not in json.loads(registration["kinds_json"])
+            ):
+                raise Rejected(409, "Device authority has changed")
+            record = db.execute(
+                "SELECT c.message FROM cron_results c "
+                "JOIN events e ON e.event_id=c.event_id "
+                "WHERE e.event_id=? AND e.installation=? "
+                "AND e.provider=? AND e.user_id=? AND e.kind='cron_result' "
+                "AND e.cancelled=0 AND e.expires_at>?",
+                (event_id, installation, *principal, self.now()),
+            ).fetchone()
+            if record is None:
+                raise Rejected(404, "Cron result expired or not found")
+            return {"event_id": event_id, "message": record["message"]}
+
     @staticmethod
     def _cancel_attention(db, sid, request_id=None):
         query = "UPDATE events SET cancelled=1 WHERE session_id=? AND kind='input'"
@@ -477,15 +561,25 @@ class Store:
         cursor = after
         for row in rows:
             if scope is not None:
-                permitted = (
-                    row["kind"] in kinds
-                    and scope.allows(principal, row["session_id"], policy)
-                    and durable(row["session_id"])
-                )
+                if row["kind"] == "cron_result":
+                    permitted = (
+                        row["installation"] == installation
+                        and "cron_result" in kinds
+                        and scope.mode == "authorized"
+                        and principal in policy.owner_grants
+                    )
+                else:
+                    permitted = (
+                        row["kind"] in kinds
+                        and scope.allows(principal, row["session_id"], policy)
+                        and durable(row["session_id"])
+                    )
             else:
-                # Preserve the legacy unbound API (including safe challenge metadata).
+                # Never expose cron results through the unbound legacy API.
                 permitted = row["kind"] == "challenge" or (
-                    policy.allowed(principal, row["session_id"]) and durable(row["session_id"])
+                    row["kind"] != "cron_result"
+                    and policy.allowed(principal, row["session_id"])
+                    and durable(row["session_id"])
                 )
             if not permitted:
                 cursor = row["cursor"]

@@ -36,7 +36,7 @@ void main() {
 
   test('notice repair preserves copied payloads and existing licences', () {
     const hashes = <String, String>{
-      'LICENSE':
+      'LICENSES/MIT-hermes-android.txt':
           '63a8c9d5b5485c845090d15933956f537ecedb0fb0af25abb5c5a4c9d6428567',
       'assets/fonts/OFL.txt':
           'f5a242cf68ad6ebd0603b3359a74c593ca080318a681035be5296ba2c6b04ae6',

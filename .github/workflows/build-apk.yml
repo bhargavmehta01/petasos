@@ -1,0 +1,119 @@
+name: Build Petasos APK
+# Public CI on GitHub-hosted runners only (free for public repositories).
+# Never add a self-hosted runner here: pull requests from forks would run on it.
+#
+# Every pull request and push to main: analyze, run the Flutter and server tests, and
+# build an arm64 APK signed with a throwaway debug key so reviewers can try the change.
+# Official releases are built and signed by the maintainer with the release key, which is
+# never stored in this repository or in Actions secrets.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '**.md']
+  pull_request:
+    paths-ignore: ['docs/**', '**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-pub
+
+      - name: Test (Petasos UI)
+        run: flutter test --no-pub test/hermes_mobile
+
+      - name: Build release APK (arm64)
+        run: |
+          flutter build apk --release --target-platform android-arm64 \
+            --split-per-abi --split-debug-info=build/symbols
+
+      - name: Sign with a throwaway debug key (test builds only)
+        run: |
+          set -euo pipefail
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          keytool -genkeypair -keystore "$RUNNER_TEMP/debug.p12" -storetype PKCS12 -alias debug \
+            -keyalg RSA -keysize 2048 -validity 3650 -storepass android -keypass android \
+            -dname "CN=Petasos Debug" >/dev/null 2>&1
+          IN=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          if [ ! -f "$IN" ]; then IN=$(ls build/app/outputs/flutter-apk/*arm64*release*.apk | head -1); fi
+          "$BT/zipalign" -f -p 4 "$IN" "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/debug.p12" --ks-type PKCS12 \
+            --ks-pass pass:android --key-pass pass:android \
+            --out "$IN" "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" verify --print-certs "$IN"
+
+      - name: Collect APK
+        run: |
+          mkdir -p dist
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+          SRC=$(ls build/app/outputs/flutter-apk/*arm64*release*.apk | head -1)
+          cp "$SRC" "dist/petasos-${VERSION}-arm64-test.apk"
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+          ls -la dist
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: petasos-arm64-test-apk
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  push-server-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install server test dependencies
+        run: python -m pip install -e 'server/mobile-push[test]'
+      - name: Run mobile push and cron delivery tests
+        run: python -m pytest -q server/mobile-push/tests --ignore=server/mobile-push/tests/test_dart_contract_smoke.py
+      - name: Run Petasos server plugin tests
+        run: |
+          python -m pip install pyyaml
+          python -m pytest -q server/hermes_mobile_plugin/tests
+
+  engine-tests:
+    # Full Flutter suite (about 20 minutes on hosted runners); runs beside the APK build.
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --no-pub

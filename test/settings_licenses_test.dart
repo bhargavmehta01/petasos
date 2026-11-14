@@ -169,7 +169,8 @@ void main() {
     expect(find.text('3.0.0-rc.1+3000'), findsOneWidget);
 
     const packages = <String, List<String>>{
-      'Hermes Android': ['LICENSE'],
+      'Petasos (AGPL-3.0)': ['LICENSE'],
+      'Hermes Android by rusty4444 (MIT)': ['LICENSES/MIT-hermes-android.txt'],
       'Cinzel': ['assets/fonts/OFL.txt'],
       'embedded-fcm-distributor (3.1.0)': [
         'third_party/embedded-push-notice.md',

@@ -1,0 +1,44 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please remove server addresses, tokens and personal data from logs and screenshots.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: Petasos version
+      description: Profile → About and licenses
+      placeholder: "1.0.0 (72003)"
+    validations:
+      required: true
+  - type: input
+    id: hermes
+    attributes:
+      label: Hermes Agent version
+      description: Output of `hermes --version` on your host
+  - type: input
+    id: device
+    attributes:
+      label: Phone and Android version
+      placeholder: "Pixel 8, Android 15"
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      render: text

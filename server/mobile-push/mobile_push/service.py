@@ -100,7 +100,17 @@ class Runtime:
                 status = 400  # Changed/unsafe DNS is permanent until an explicit update.
             except Exception:
                 status = 503
+            # Log only the status, event kind and a short installation prefix.
+            # Never the endpoint, keys or payload.
+            logger.info(
+                "push send installation=%s… kind=%s attempt=%d status=%s",
+                str(registration["installation"])[:8], event["kind"], row["attempts"], status,
+            )
             if status in {404, 410}:
+                logger.warning(
+                    "push service reported the endpoint gone (status=%s); revoking installation=%s…",
+                    status, str(registration["installation"])[:8],
+                )
                 self.store.revoke_in(db, registration)
             elif 200 <= status <= 202 or (400 <= status < 500 and status not in {408, 429}):
                 db.execute(
@@ -137,6 +147,14 @@ class Runtime:
         if event["kind"] == "challenge":
             return registration["status"] == "pending" and scope.ready(
                 principal, policy, self.profile.durable
+            )
+        if event["kind"] == "cron_result":
+            return (
+                registration["status"] == "active"
+                and event["installation"] == registration["installation"]
+                and "cron_result" in json.loads(registration["kinds_json"])
+                and scope.mode == "authorized"
+                and principal in policy.owner_grants
             )
         return (
             registration["status"] == "active"
@@ -180,6 +198,18 @@ class Runtime:
         self.inbox.put(captured, policy)
 
     def session_end(self, **kwargs):
+        # Cron output is delivered only through the explicit cron destination.
+        # Suppress generic turn-completed hints for known cron sessions, even
+        # when the prompt returned [SILENT]. Other sessions are unaffected.
+        if (
+            kwargs.get("source") == "cron"
+            or kwargs.get("platform") == "cron"
+            or (
+                identifier(kwargs.get("session_id"))
+                and self.profile.is_cron_session(kwargs["session_id"])
+            )
+        ):
+            return
         # Ignore incomplete legacy hooks: no turn IDs/outcome flags means no safe dedup/outcome.
         if not all(identifier(kwargs.get(key)) for key in ("session_id", "turn_id")):
             return

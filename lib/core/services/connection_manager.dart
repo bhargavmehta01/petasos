@@ -1846,6 +1846,14 @@ class GatewayChatClient {
     if (eventType == 'approval.request') {
       return _SseFrame(approval: parsed);
     }
+    // --- wave1 (hermes_mobile) --- clarify/sudo/secret prompts reach onStatus tagged
+    // `hermes_mobile_control`; status consumers that read `text`/`message` ignore them.
+    if (eventType == 'clarify.request' ||
+        eventType == 'sudo.request' ||
+        eventType == 'secret.request') {
+      return _SseFrame(status: {...parsed, 'hermes_mobile_control': eventType});
+    }
+    // --- end wave1 ---
     final choices = parsed['choices'];
     // Usage-only chunks and extension events do not carry completion evidence.
     if (choices == null || (choices is List && choices.isEmpty)) {

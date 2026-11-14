@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Hermes Agent itself (server, models, tools)
+    url: https://github.com/NousResearch/hermes-agent/issues
+    about: Problems with Hermes Agent rather than this Android app belong upstream.

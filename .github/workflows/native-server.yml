@@ -12,6 +12,8 @@ permissions:
 
 jobs:
   native:
+    # Petasos: upstream-only job (release signing pins etc.); see build-apk.yml.
+    if: github.repository == 'rusty4444/hermes-android'
     name: Android native regressions
     runs-on: ubuntu-latest
     steps:
@@ -73,6 +75,8 @@ jobs:
           if-no-files-found: warn
 
   server:
+    # Petasos: upstream-only job (release signing pins etc.); see build-apk.yml.
+    if: github.repository == 'rusty4444/hermes-android'
     name: Push companion and Dart TCP contract
     runs-on: ubuntu-latest
     steps:

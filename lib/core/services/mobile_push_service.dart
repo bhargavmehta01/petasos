@@ -66,6 +66,8 @@ class MobilePushService extends ChangeNotifier with WidgetsBindingObserver {
   String? error;
   List<Map<String, dynamic>> events = [];
   String get connectionId => _state['connection'] as String? ?? '';
+  /// A routing identifier, not a credential. Server authorization is required.
+  String get installationId => enabled ? (_state['installation'] as String? ?? '') : '';
   bool get enabled => _state['enabled'] == true;
   bool get active => enabled && _state['active'] == true;
   String get sessionScope => _state['session_scope'] as String? ?? 'explicit';
@@ -148,6 +150,7 @@ class MobilePushService extends ChangeNotifier with WidgetsBindingObserver {
         'kinds': [
           if (prefs.kindEnabled(HermesNotificationKind.turnDone)) 'turn_done',
           if (prefs.kindEnabled(HermesNotificationKind.turnError)) 'turn_error',
+          if (prefs.kindEnabled(HermesNotificationKind.backgroundDone)) 'cron_result',
           if (prefs.kindEnabled(HermesNotificationKind.input)) ...[
             'input',
             'input_resolved',
@@ -275,6 +278,7 @@ class MobilePushService extends ChangeNotifier with WidgetsBindingObserver {
         'kinds': [
           if (prefs.kindEnabled(HermesNotificationKind.turnDone)) 'turn_done',
           if (prefs.kindEnabled(HermesNotificationKind.turnError)) 'turn_error',
+          if (prefs.kindEnabled(HermesNotificationKind.backgroundDone)) 'cron_result',
           if (prefs.kindEnabled(HermesNotificationKind.input)) ...[
             'input',
             'input_resolved',
@@ -678,15 +682,20 @@ class MobilePushService extends ChangeNotifier with WidgetsBindingObserver {
       for (final raw in response['events'] as List) {
         if (raw is! Map) continue;
         final event = Map<String, dynamic>.from(raw);
+        final isCron = event['kind'] == 'cron_result';
         if (!MobilePushApi.validIdentifier(event['event_id'], maxLength: 256) ||
-            !MobilePushApi.validIdentifier(event['session_id']) ||
-            (MobilePushApi.sessionScope(state) == 'explicit' &&
-                !(state['sessions'] as List).contains(event['session_id'])) ||
+            (isCron
+                ? MobilePushApi.sessionScope(state) != 'authorized' ||
+                    event['session_id'] != null
+                : !MobilePushApi.validIdentifier(event['session_id']) ||
+                    (MobilePushApi.sessionScope(state) == 'explicit' &&
+                        !(state['sessions'] as List).contains(event['session_id']))) ||
             !const [
               'turn_done',
               'turn_error',
               'input',
               'input_resolved',
+              'cron_result',
             ].contains(event['kind']) ||
             event['expires_at'] is! num ||
             (event['expires_at'] as num) <=
@@ -732,7 +741,7 @@ class MobilePushService extends ChangeNotifier with WidgetsBindingObserver {
     }
     return MobilePushRoute(
       connection,
-      event['session_id'] as String,
+      event['kind'] == 'cron_result' ? '__hermes_mobile_cron__' : event['session_id'] as String,
       event['event_id'] as String,
       {
         for (final key in [
@@ -758,6 +767,9 @@ class MobilePushService extends ChangeNotifier with WidgetsBindingObserver {
     'turn_error' => notificationPrefs.value.kindEnabled(
       HermesNotificationKind.turnError,
     ),
+    'cron_result' => notificationPrefs.value.kindEnabled(
+      HermesNotificationKind.backgroundDone,
+    ),
     'input' || 'input_resolved' => notificationPrefs.value.kindEnabled(
       HermesNotificationKind.input,
     ),
@@ -771,6 +783,42 @@ class MobilePushService extends ChangeNotifier with WidgetsBindingObserver {
         (route.authority['route_expires_at'] as num) >
             DateTime.now().millisecondsSinceEpoch / 1000;
   }
+
+  /// Fetch cron content only after authenticated event reconciliation and a
+  /// fresh native installation/generation authority check.
+  Future<String> loadCronResult(MobilePushRoute route) async {
+    if (route.sessionId != '__hermes_mobile_cron__' ||
+        !await isRouteCurrent(route)) {
+      throw StateError('Cron notification is no longer authorized.');
+    }
+    final connection = _connection(route.connection.id);
+    if (connection == null || binding(connection) != binding(route.connection)) {
+      throw StateError('Saved connection changed.');
+    }
+    final client = _clientFactory(connection);
+    try {
+      final response = await MobilePushApi(client).cronResult(
+        route.eventId,
+        installation: route.authority['installation'] as String,
+        generation: route.authority['generation'] as int,
+      );
+      if (!await isRouteCurrent(route)) {
+        throw StateError('Cron notification expired or was revoked.');
+      }
+      final message = response['message'];
+      if (response['event_id'] != route.eventId ||
+          message is! String ||
+          message.length > 65536) {
+        throw const FormatException('Invalid cron result payload.');
+      }
+      return message;
+    } finally {
+      client.close();
+    }
+  }
+
+  @visibleForTesting
+  static String messageFor(Object error) => _message(error);
 
   static String _message(Object error) {
     if (error is StateError &&
@@ -798,6 +846,12 @@ class MobilePushService extends ChangeNotifier with WidgetsBindingObserver {
       }
       if (error.statusCode == 401 || error.statusCode == 403) {
         return 'Server denied mobile push. Ask the operator to authorize this principal and these sessions.';
+      }
+      if (error.statusCode == 409) {
+        // The server permanently retired this installation ID (explicit revoke, or the
+        // push service reported the endpoint gone). Re-pairing needs a fresh ID, which
+        // only an explicit off/on creates, so a server-side revoke is never undone silently.
+        return 'The server no longer accepts this device registration. Turn Background notifications off and on again to pair this phone.';
       }
     }
     // Never surface server/platform exception bodies (endpoint/auth secrets).

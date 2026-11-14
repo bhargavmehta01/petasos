@@ -1,0 +1,10 @@
+name: hermes-mobile-platform
+label: Petasos
+kind: platform
+version: 0.1.0
+description: Outbound-only Hermes cron delivery to a securely paired Petasos Android installation.
+optional_env:
+  - name: HERMES_MOBILE_HOME_CHANNEL
+    description: "Registered Petasos Android device ID for cron delivery"
+    prompt: "Petasos device ID"
+    password: false

@@ -14,6 +14,8 @@ permissions:
 
 jobs:
   quality:
+    # Petasos: upstream-only job (release signing pins etc.); see build-apk.yml.
+    if: github.repository == 'rusty4444/hermes-android'
     name: Analyze & Test
     runs-on: ubuntu-latest
 

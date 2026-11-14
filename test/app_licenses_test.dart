@@ -7,6 +7,7 @@ import 'package:hermes_android/core/services/app_licenses.dart';
 
 const _noticeAssets = <String>[
   'LICENSE',
+  'LICENSES/MIT-hermes-android.txt',
   'assets/fonts/OFL.txt',
   'third_party/embedded-push-notice.md',
   'third_party/embedded-push-relink.md',
@@ -65,7 +66,8 @@ void main() {
     expect(entries.first.packages, ['test_dependency']);
     expect(bundle.requests, _noticeAssets);
     expect(entries.skip(1).map((entry) => entry.packages.single), [
-      'Hermes Android',
+      'Petasos (AGPL-3.0)',
+      'Hermes Android by rusty4444 (MIT)',
       'Cinzel',
       'embedded-fcm-distributor (3.1.0)',
       'embedded-fcm-distributor (3.1.0)',
@@ -82,7 +84,9 @@ void main() {
       expect(entry.text, await File(_noticeAssets[index]).readAsString());
       expect(entry.paragraphs, isNotEmpty);
     }
-    final mit = entries[1] as LicenseEntryWithLineBreaks;
+    final agpl = entries[1] as LicenseEntryWithLineBreaks;
+    expect(agpl.text, contains('GNU AFFERO GENERAL PUBLIC LICENSE'));
+    final mit = entries[2] as LicenseEntryWithLineBreaks;
     expect(mit.text, startsWith('MIT License\n'));
     expect(
       mit.text,
@@ -91,7 +95,7 @@ void main() {
     expect(mit.text, contains('Permission is hereby granted, free of charge'));
     expect(mit.text, contains('THE SOFTWARE IS PROVIDED "AS IS"'));
     expect(mit.text, endsWith('SOFTWARE.\n'));
-    final lgpl = entries[5] as LicenseEntryWithLineBreaks;
+    final lgpl = entries[6] as LicenseEntryWithLineBreaks;
     expect(lgpl.text, contains('Copyright (C) 2022 Simon Gougeon'));
     expect(
       lgpl.text,

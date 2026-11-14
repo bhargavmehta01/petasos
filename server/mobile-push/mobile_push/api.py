@@ -47,8 +47,8 @@ class Registration(StrictModel):
     endpoint: str = Field(min_length=8, max_length=2048)
     keys: Keys
     registration_nonce: str = Field(pattern=r"^[A-Za-z0-9_-]{16,128}$")
-    event_kinds: list[Literal["turn_done", "turn_error", "input", "input_resolved"]] = Field(
-        min_length=1, max_length=4
+    event_kinds: list[Literal["turn_done", "turn_error", "input", "input_resolved", "cron_result"]] = Field(
+        min_length=1, max_length=5
     )
     session_scope: Literal["explicit", "authorized"] = "explicit"
     session_ids: list[str] | None = Field(default=None, min_length=1, max_length=128)
@@ -194,6 +194,22 @@ def create_router(profile_source):
                 bound_generation = int(generation)
             return Store(profile.database).events(
                 identity, after, limit, policy, profile.durable, installation_id, bound_generation
+            )
+
+        return guarded(read)
+
+    @router.get("/cron-results/{event_id}")
+    def cron_result(
+        event_id: str,
+        identity: Identity,
+        profile: Profile = Depends(profile_for_request),
+        installation_id: str = Query(...),
+        generation: int = Query(..., ge=1, le=9223372036854775807),
+    ):
+        def read():
+            policy = policy_for(profile, identity)
+            return Store(profile.database).cron_result(
+                identity, installation_id, generation, event_id, policy
             )
 
         return guarded(read)
