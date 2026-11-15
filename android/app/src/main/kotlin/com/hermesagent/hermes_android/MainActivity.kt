@@ -10,12 +10,14 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileOutputStream
+import java.security.MessageDigest
 import java.util.UUID
 
 class MainActivity : FlutterActivity() {
     private val shareChannelName = "com.hermesagent.hermes_android/share"
     private val launchChannelName = "com.hermesagent.hermes_android/launch"
     private val keepAliveChannelName = "com.hermesagent.hermes_android/keepalive"
+    private val appInfoChannelName = "com.hermesagent.hermes_android/app_info"
     private val quickChatAction = "com.hermesagent.hermes_android.action.QUICK_CHAT"
     private val maxSharedItems = 10
     private val maxSharedBytes = 64L * 1024L * 1024L
@@ -81,6 +83,14 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, appInfoChannelName).apply {
+            setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getSigningCertificateSha256" -> result.success(signingCertificateSha256())
+                    else -> result.notImplemented()
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -127,6 +137,25 @@ class MainActivity : FlutterActivity() {
         true
     } catch (_: Exception) {
         false
+    }
+
+    @Suppress("DEPRECATION")
+    private fun signingCertificateSha256(): List<String> {
+        val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageManager.getPackageInfo(
+                packageName,
+                android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES,
+            ).signingInfo.apkContentsSigners
+        } else {
+            packageManager.getPackageInfo(
+                packageName,
+                android.content.pm.PackageManager.GET_SIGNATURES,
+            ).signatures
+        }
+        return signatures.map { signature ->
+            MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
+                .joinToString(":") { byte -> "%02X".format(byte) }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
