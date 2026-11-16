@@ -145,14 +145,14 @@ class MainActivity : FlutterActivity() {
             packageManager.getPackageInfo(
                 packageName,
                 android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES,
-            ).signingInfo.apkContentsSigners
+            ).signingInfo?.apkContentsSigners
         } else {
             packageManager.getPackageInfo(
                 packageName,
                 android.content.pm.PackageManager.GET_SIGNATURES,
             ).signatures
         }
-        return signatures.map { signature ->
+        return signatures.orEmpty().map { signature ->
             MessageDigest.getInstance("SHA-256").digest(signature.toByteArray())
                 .joinToString(":") { byte -> "%02X".format(byte) }
         }
