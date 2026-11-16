@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/services/background_work_prefs.dart';
@@ -1332,6 +1333,20 @@ class AppearanceScreen extends StatelessWidget {
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
+
+  static const _appInfoChannel = MethodChannel(
+    'com.hermesagent.hermes_android/app_info',
+  );
+  static final _signingCertificateSha256Future =
+      _loadSigningCertificateSha256();
+
+  static Future<List<String>> _loadSigningCertificateSha256() async {
+    final fingerprints = await _appInfoChannel.invokeListMethod<String>(
+      'getSigningCertificateSha256',
+    );
+    return fingerprints ?? const [];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1353,13 +1368,42 @@ class AboutScreen extends StatelessWidget {
               HermesMobileCardFrame(
                 title: 'Petasos',
                 icon: Icons.bolt_rounded,
-                child: Text(
-                  'Version ${v?.version ?? '…'}${v?.buildNumber.isNotEmpty == true ? ' (${v!.buildNumber})' : ''}\n\n'
-                  'A mobile interface for your self-hosted Hermes Agent by '
-                  'Nous Research. The connection, streaming, approvals, push and '
-                  'turn-recovery engine comes from rusty4444/hermes-android '
-                  '(MIT). Thank you, rusty4444.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Version ${v?.version ?? '…'}${v?.buildNumber.isNotEmpty == true ? ' (${v!.buildNumber})' : ''}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<String>>(
+                      future: _signingCertificateSha256Future,
+                      builder: (context, snapshot) {
+                        final fingerprints = snapshot.data;
+                        final value = snapshot.hasError
+                            ? 'Unavailable'
+                            : fingerprints == null
+                            ? '…'
+                            : fingerprints.isEmpty
+                            ? 'Unavailable'
+                            : fingerprints.join('\n');
+                        return SelectionArea(
+                          child: Text(
+                            'Signing certificate SHA-256\n$value',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'A mobile interface for your self-hosted Hermes Agent by '
+                      'Nous Research. The connection, streaming, approvals, push and '
+                      'turn-recovery engine comes from rusty4444/hermes-android '
+                      '(MIT). Thank you, rusty4444.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
